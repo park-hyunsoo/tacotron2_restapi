@@ -48,6 +48,7 @@ class Attention(nn.Module):
         query: decoder output (batch, n_mel_channels * n_frames_per_step)
         processed_memory: processed encoder outputs (B, T_in, attention_dim)
         attention_weights_cat: cumulative and prev. att weights (B, 2, max_time)
+
         RETURNS
         -------
         alignment (batch, max_time)
@@ -244,6 +245,7 @@ class Decoder(nn.Module):
         PARAMS
         ------
         memory: decoder outputs
+
         RETURNS
         -------
         decoder_input: all zeros frames
@@ -291,9 +293,11 @@ class Decoder(nn.Module):
         PARAMS
         ------
         decoder_inputs: inputs used for teacher-forced training, i.e. mel-specs
+
         RETURNS
         -------
         inputs: processed decoder inputs
+
         """
         # (B, n_mel_channels, T_out) -> (B, T_out, n_mel_channels)
         decoder_inputs = decoder_inputs.transpose(1, 2)
@@ -311,6 +315,7 @@ class Decoder(nn.Module):
         mel_outputs:
         gate_outputs: gate output energies
         alignments:
+
         RETURNS
         -------
         mel_outputs:
@@ -337,6 +342,7 @@ class Decoder(nn.Module):
         PARAMS
         ------
         decoder_input: previous mel output
+
         RETURNS
         -------
         mel_output:
@@ -379,6 +385,7 @@ class Decoder(nn.Module):
         memory: Encoder outputs
         decoder_inputs: Decoder inputs for teacher forcing. i.e. mel-specs
         memory_lengths: Encoder output lengths for attention masking.
+
         RETURNS
         -------
         mel_outputs: mel outputs from the decoder
@@ -413,6 +420,7 @@ class Decoder(nn.Module):
         PARAMS
         ------
         memory: Encoder outputs
+
         RETURNS
         -------
         mel_outputs: mel outputs from the decoder

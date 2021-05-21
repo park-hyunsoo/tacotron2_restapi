@@ -1,57 +1,54 @@
+import os
+import json
 import numpy as np
 import torch
 
-from models import Tacotron2
-from hparams import create_hparams
+import sys
+sys.path.append('waveglow/')
+
+from hparams import defaults
+from model import Tacotron2
 from layers import TacotronSTFT, STFT
 from audio_processing import griffin_lim
-
-from scipy.io.wavfile import write
+from train import load_model
+from text import text_to_sequence
+from waveglow.glow import WaveGlow
 import soundfile as sf
 
-class TacotronHandler(nn.Module):
+_CHECKPOINT_DIR = '/home/web/checkpoint'
+
+class Struct:
+    def __init__(self, **entries):
+        self.__dict__.update(entries)
+
+class TacotronHandler:
     def __init__(self):
         super().__init__()
         self.tacotron_model = None
         self.waveglow = None
-        self.device = None
-        self.denoiser = None
 
-    def _load_model(hparams):
-        model = Tacotron2(hparams).cuda()
-        if hparams.fp16_run:
-            model.decoder.attention_layer.score_mask_value = finfo('float16').min
-
-        if hparams.distributed_run:
-            model = apply_gradient_allreduce(model)
-
-        return model
-
-    def _load_tacotron2(self, checkpoint_file):
-        tacotron2_checkpoint = torch.load(checkpoint_file)
-
-        hparams = create_hparams()
+    def _load_tacotron2(self, checkpoint_path):
+        hparams = Struct(**defaults)
         hparams.sampling_rate = 22050
 
-        self.tacotron_model = self._load_model(hparams)
-        self.tacotron_model.load_state_dict(tacotron2_checkpoint['state_dict'])
-        self.tacotron_model.to(self.device)
-        self.tacotron_model.eval().half()
+        model = load_model(hparams)
+        model.load_state_dict(torch.load(checkpoint_path)['state_dict'])
+        model.cuda().eval()
+        self.tacotron_model = model
 
-
-    def _load_waveglow(self, checkpoint_file):
-        self.waveglow = torch.load(waveglow_path)['model']
-        self.waveglow.cuda().eval().half()
-        for k in self.waveglow.convinv:
-            k.float()
+    def _load_waveglow(self, checkpoint_path):
+        waveglow = torch.hub.load('nvidia/DeepLearningExamples:torchhub', 'nvidia_waveglow')
+        waveglow = waveglow.remove_weightnorm(waveglow)
+        waveglow = waveglow.to('cuda')
+        waveglow.eval()
+        self.waveglow = waveglow
 
     def initialize(self):
         if not torch.cuda.is_available():
             raise RuntimeError("This model is not supported on CPU machines.")
-        self.device = torch.device('cuda')
 
-        self._load_tacotron2(checkpoint_file='tacotron2.pt')
-        self._load_waveglow(checkpoint_file='waveglow_weights.pt')
+        self._load_tacotron2(checkpoint_path=os.path.join(_CHECKPOINT_DIR,'checkpoint_138500'))
+        self._load_waveglow(checkpoint_path=os.path.join(_CHECKPOINT_DIR,'waveglow.pt'))
 
 
     def preprocess(self, text):
@@ -60,22 +57,19 @@ class TacotronHandler(nn.Module):
         return sequence
 
     def inference(self, sequence):
-        mel_outputs, mel_outputs_postnet, _, alignments = self.tacotron_model.inference(sequence)
         with torch.no_grad():
-            audio = self.waveglow.infer(mel_output_postnet, sigma=0.666)
-        return audio
+            mel_outputs, mel_outputs_postnet, _, alignments = self.tacotron_model.inference(sequence)
+            audio = self.waveglow.infer(mel_outputs_postnet, sigma=0.666)
+        audio_numpy = audio[0].data.cpu().numpy()
+        return audio_numpy
 
     def postprocess(self, audio):
-        sf.write('tts_output.wav', audio, '22050')
+        sf.write('tts_output.wav', audio, 22050)
         return 'API/audio/output_name'
 
 
 handler = TacotronHandler()
 handler.initialize()
 sequence = handler.preprocess('안녕하세요')
-audio = handler.inference(sequence)
-handler.postprocess(audio)
-
-audio_denoised = handler.denoise(audio)
-handler.postprocess(audio_denoised)
-
+audio_numpy = handler.inference(sequence)
+handler.postprocess(audio_numpy)

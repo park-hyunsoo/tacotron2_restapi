@@ -9,3 +9,5 @@ Django
 djangorestframework
 gunicorn
 torch
+jamo
+tensorflow

@@ -65,6 +65,7 @@ class TacotronSTFT(torch.nn.Module):
         PARAMS
         ------
         y: Variable(torch.FloatTensor) with shape (B, T) in range [-1, 1]
+
         RETURNS
         -------
         mel_output: torch.FloatTensor of shape (B, n_mel_channels, T)
