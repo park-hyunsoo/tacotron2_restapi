@@ -66,10 +66,3 @@ class TacotronHandler:
     def postprocess(self, audio):
         sf.write('tts_output.wav', audio, 22050)
         return 'API/audio/output_name'
-
-
-handler = TacotronHandler()
-handler.initialize()
-sequence = handler.preprocess('안녕하세요')
-audio_numpy = handler.inference(sequence)
-handler.postprocess(audio_numpy)

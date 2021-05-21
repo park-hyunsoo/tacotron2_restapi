@@ -17,6 +17,6 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('api/', include('tts_api.urls', namespace='tts_api'))
+    path('api/', include('tts_api.urls', namespace='tts_api')),
     path('admin/', admin.site.urls),
 ]
