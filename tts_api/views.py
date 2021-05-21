@@ -1,3 +1,4 @@
+import os
 import sys
 sys.path.append('/home/web/tacotron_models/')
 
@@ -6,6 +7,7 @@ from tacotron_models.handler import TacotronHandler
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
+from django.http import HttpResponse
 
 tacotron_handler = TacotronHandler()
 tacotron_handler.initialize()
@@ -16,6 +18,13 @@ def tts_transcription(request):
     input_sequence = tacotron_handler.preprocess(text)
 
     output_audio = tacotron_handler.inference(input_sequence)
-    store_path = tacotron_handler.postprocess(output_audio)
+    file_path = tacotron_handler.postprocess(output_audio)
+
+    if os.path.exists(file_path):
+        with open(file_path, 'rb') as fh:
+            response = HttpResponse(fh.read(), content_type="audio/wav")
+            response['Content-Length'] = os.path.getsize(file_path)
+            response['Content-Disposition'] = 'attachment; filename="sample.wav"'
+            return response
 
     return Response(status=status.HTTP_200_OK)
