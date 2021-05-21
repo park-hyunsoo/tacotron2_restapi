@@ -1,0 +1,11 @@
+numpy
+scipy
+matplotlib
+librosa
+inflect
+Unidecode
+pillow
+Django
+djangorestframework
+gunicorn
+torch
