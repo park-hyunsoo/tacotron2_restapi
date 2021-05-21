@@ -3,5 +3,5 @@ from . import views
 
 app_name = 'tts_api' 
 urlpatterns = [ 
-    path('tts', views.tts_transcription),
+    path('tts/', views.tts_transcription),
 ]
